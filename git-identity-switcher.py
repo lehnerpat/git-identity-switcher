@@ -21,6 +21,7 @@
 #############################################################################
 
 from sys import argv
+from subprocess import *
 
 DEFAULT_LOCATION = "global"
 
@@ -32,13 +33,39 @@ def show_help():
 def show_set_usage():
     pass
 
-def id_set(name,email="",location=DEFAULT_LOCATION):
-    print "Name=", name
-    print "Email=", email
-    print "loc=", location
+def id_set(name, email, location):
+    if location == "local" or location == "global":
+        call(['git', 'config', '--' + location, 'user.name', '"' + name + '"'])
+        call(['git', 'config', '--' + location, 'user.email', '"' + email + '"'])
+    # TODO: add error message if unsupported location
 
-def id_show(args):
-    pass
+
+def id_unset(location):
+    if location == "local" or location == "global":
+        call(['git', 'config', '--' + location, '--unset', 'user.name'])
+        call(['git', 'config', '--' + location, '--unset', 'user.email'])
+    # TODO: add error message if unsupported location
+
+
+def id_show(location, show_empty):
+    if location == "global" or location == "all":
+        pipe = Popen(['git', 'config', '--null', '--global', '--get', 'user.name'], stdout=PIPE).stdout
+        global_user_name = pipe.read()
+        pipe.close()
+        pipe = Popen(['git', 'config', '--null', '--global', '--get', 'user.email'], stdout=PIPE).stdout
+        global_user_email = pipe.read()
+        pipe.close()
+        if len(global_user_name.strip()) == 0:
+            global_user_name = "(UNSET)"
+        else:
+            global_user_name = '"{0}"'.format(global_user_name)
+        if len(global_user_email.strip()) == 0:
+            global_user_email = "(UNSET)"
+        else:
+            global_user_email = '"{0}"'.format(global_user_email)
+        if global_user_name != "(UNSET)" or global_user_email != "(UNSET)" or show_empty:
+            print '[global] user.name  = {0}'.format(global_user_name)
+            print '[global] user.email = {0}'.format(global_user_email)
 
 def id_add(args):
     pass
@@ -67,12 +94,17 @@ def parse_args():
     if i < argc: # if there are any arguments left
         if argv[i] == "set":
             parse_args_set(i+1)
+        elif argv[i] == "unset":
+            parse_args_unset(i+1)
+        elif argv[i] == "show":
+            parse_args_show(i+1)
         elif argv[i] == "add":
             parse_args_add(i+1)
             
     else: # no subcommand was provided, show usage message and quit
         show_help()
         exit(2)
+
 
 def parse_args_set(idx):
     if argc - idx < 1: # if no actual arguments are left
@@ -88,6 +120,37 @@ def parse_args_set(idx):
     set_location=DEFAULT_LOCATION
     
     id_set(set_name, set_email, set_location)
+
+
+def parse_args_unset(idx):
+    unset_location = DEFAULT_LOCATION
+    
+    while idx < argc:
+        if argv[idx].lower() == "--local":
+            unset_location = "local"
+        elif argv[idx].lower() == "--global":
+            unset_location = "global"
+        idx += 1
+
+    id_unset(unset_location)
+
+
+def parse_args_show(idx):
+    show_location = "all"
+    show_empty = False
+
+    while idx < argc:
+        if argv[idx].lower() == "--local":
+            show_location = "local"
+        elif argv[idx].lower() == "--global":
+            show_location = "global"
+        elif argv[idx].lower() == "--all":
+            show_location = "all"
+        elif argv[idx].lower() == "--show-empty":
+            show_empty = True
+        i += 1
+
+    id_show(show_location, show_empty)
 
 
 def parse_args_add(idx):
