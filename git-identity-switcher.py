@@ -25,6 +25,8 @@ from subprocess import *
 
 DEFAULT_LOCATION = "global"
 
+#### USAGE/HELP PRINTING FUNCTIONS ############################################
+
 def show_help():
     print """
     git-indentity-switcher -- quickly switch between Git committer identities
@@ -33,51 +35,8 @@ def show_help():
 def show_set_usage():
     pass
 
-def id_set(name, email, location):
-    if location == "local" or location == "global":
-        call(['git', 'config', '--' + location, 'user.name', '"' + name + '"'])
-        call(['git', 'config', '--' + location, 'user.email', '"' + email + '"'])
-    # TODO: add error message if unsupported location
 
-
-def id_unset(location):
-    if location == "local" or location == "global":
-        call(['git', 'config', '--' + location, '--unset', 'user.name'])
-        call(['git', 'config', '--' + location, '--unset', 'user.email'])
-    # TODO: add error message if unsupported location
-
-
-def id_show(location, show_empty):
-    if location == "global" or location == "all":
-        pipe = Popen(['git', 'config', '--null', '--global', '--get', 'user.name'], stdout=PIPE).stdout
-        global_user_name = pipe.read()
-        pipe.close()
-        pipe = Popen(['git', 'config', '--null', '--global', '--get', 'user.email'], stdout=PIPE).stdout
-        global_user_email = pipe.read()
-        pipe.close()
-        if len(global_user_name.strip()) == 0:
-            global_user_name = "(UNSET)"
-        else:
-            global_user_name = '"{0}"'.format(global_user_name)
-        if len(global_user_email.strip()) == 0:
-            global_user_email = "(UNSET)"
-        else:
-            global_user_email = '"{0}"'.format(global_user_email)
-        if global_user_name != "(UNSET)" or global_user_email != "(UNSET)" or show_empty:
-            print '[global] user.name  = {0}'.format(global_user_name)
-            print '[global] user.email = {0}'.format(global_user_email)
-
-def id_add(args):
-    pass
-
-def id_list(args):
-    pass
-
-def id_rm(args):
-    pass
-
-def id_update(args):
-    pass
+#### ARGUMENT PARSING FUNCTIONS ###############################################
 
 def parse_args():
     i = 0
@@ -145,16 +104,91 @@ def parse_args_show(idx):
         elif argv[idx].lower() == "--global":
             show_location = "global"
         elif argv[idx].lower() == "--all":
-            show_location = "all"
-        elif argv[idx].lower() == "--show-empty":
-            show_empty = True
-        i += 1
+            show_location = "ALL"
+        idx += 1
 
-    id_show(show_location, show_empty)
+    id_show(show_location)
 
 
 def parse_args_add(idx):
     pass
+
+
+#### MAIN PROGRAM FUNCTIONS (SUBCOMMANDS) #####################################
+
+def id_set(name, email, location):
+    if location == "local" or location == "global":
+        call(['git', 'config', '--' + location, 'user.name', '"' + name + '"'])
+        call(['git', 'config', '--' + location, 'user.email', '"' + email + '"'])
+    # TODO: add error message if unsupported location
+
+
+def id_unset(location):
+    if location == "local" or location == "global":
+        call(['git', 'config', '--' + location, '--unset', 'user.name'])
+        call(['git', 'config', '--' + location, '--unset', 'user.email'])
+    # TODO: add error message if unsupported location
+
+
+def id_show(location):
+    if location == "ALL":
+        location = "all"
+        show_empty = True
+    else:
+        show_empty = False
+    if location == "global" or location == "all":
+        id_show_one("global", show_empty)
+    if location == "local" or location == "all":
+        id_show_one("local", show_empty)
+
+def id_show_one(location, show_empty):
+    (user_name, user_email) = get_current_id(location)
+    if len(user_name) != 0 or len(user_email) != 0 or show_empty:
+        if len(user_name) == 0:
+            user_name_suffix = " (UNSET)"
+        else:
+            user_name_suffix = ""
+        if len(user_email) == 0:
+            user_email_suffix = " (UNSET)"
+        else:
+            user_email_suffix = ""
+        print '[{0}] user.name  = "{1}"{2}'.format(location, user_name, user_name_suffix)
+        print '[{0}] user.email = "{1}"{2}'.format(location, user_email, user_email_suffix)
+
+def id_add(args):
+    pass
+
+def id_list(args):
+    pass
+
+def id_rm(args):
+    pass
+
+def id_update(args):
+    pass
+
+
+#### UTILITY AND HELPER FUNCTIONS #############################################
+
+def get_current_id(location):
+    pipe = Popen(['git', 'config', '--null', '--' + location, '--get', 'user.name'], stdout=PIPE).stdout
+    user_name = pipe.read()
+    pipe.close()
+
+    pipe = Popen(['git', 'config', '--null', '--' + location, '--get', 'user.email'], stdout=PIPE).stdout
+    user_email = pipe.read()
+    pipe.close()
+
+    if len(user_name.strip()) == 0:
+        user_name = ""
+    if len(user_email.strip()) == 0:
+        user_email = ""
+
+    return (user_name, user_email)
+    
+
+
+#### MAIN PROGRAM PART ########################################################
 
 argc = len(argv)
 parse_args()
