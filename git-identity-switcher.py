@@ -59,6 +59,8 @@ def parse_args():
             parse_args_show(i+1)
         elif argv[i] == "add":
             parse_args_add(i+1)
+        elif argv[i] == "list":
+            parse_args_list(i+1)
             
     else: # no subcommand was provided, show usage message and quit
         show_help()
@@ -111,7 +113,61 @@ def parse_args_show(idx):
 
 
 def parse_args_add(idx):
-    pass
+    add_location = "global"
+    add_force = False
+    add_id = ''
+    add_id_set = False
+    add_name = ''
+    add_name_set = False
+    add_email = ''
+    add_email_set = False
+
+    while idx < argc:
+        if argv[idx].lower() == "--local":
+            add_location = "local"
+        elif argv[idx].lower() == "--global":
+            add_location = "global"
+        elif argv[idx].lower() == "--force" or argv[idx] == "-f":
+            add_force = True
+        elif argv[idx].lower() == "--no-force":
+            add_force = False
+        # these inputs are positional and must come last! (in the proper order!)
+        elif not argv[idx].startswith('-'):
+            if not add_id_set:
+                add_id = argv[idx]
+                add_id_set = True
+            elif not add_name_set:
+                add_name = argv[idx]
+                add_name_set = True
+            elif not add_email_set:
+                add_email = argv[idx]
+                add_email_set = True
+            else:
+                print "Error: superfluous positional argument '{0}'; ignoring.".format(argv[idx])
+        else:
+            print "Error: unknown option '{0}'; ignoring.".format(argv[idx])
+        idx += 1
+
+    if len(add_name) == 0 or len(add_email) == 0:
+        print "Error: 'name' or 'email' input is empty or missing. Aborting."
+        exit(1) # TODO: proper exit code
+
+    id_add(add_location, add_force, add_id, add_name, add_email)
+
+
+def parse_args_list(idx):
+    list_location = "global"
+
+    while idx < argc:
+        if argv[idx].lower() == "--local":
+            list_location = "local"
+        elif argv[idx].lower() == "--global":
+            list_location = "global"
+        elif argv[idx].lower() == "--all":
+            list_location = "all"
+        idx += 1
+
+    id_list(list_location)
 
 
 #### MAIN PROGRAM FUNCTIONS (SUBCOMMANDS) #####################################
@@ -155,11 +211,52 @@ def id_show_one(location, show_empty):
         print '[{0}] user.name  = "{1}"{2}'.format(location, user_name, user_name_suffix)
         print '[{0}] user.email = "{1}"{2}'.format(location, user_email, user_email_suffix)
 
-def id_add(args):
-    pass
+def id_add(location, force, new_id, name, email):
+    name_key = 'id-switcher.id.' + new_id + '.name'
+    email_key = 'id-switcher.id.' + new_id + '.email'
 
-def id_list(args):
-    pass
+    proc = Popen(['git', 'config', '--null', '--' + location, '--get', name_key], stdout=PIPE)
+    pipe = proc.stdout
+    proc.wait()
+    user_name = pipe.read()
+    pipe.close()
+    namereturncode = proc.returncode
+
+    proc = Popen(['git', 'config', '--null', '--' + location, '--get', email_key], stdout=PIPE)
+    pipe = proc.stdout
+    proc.wait()
+    user_email = pipe.read()
+    pipe.close()
+    emailreturncode = proc.returncode
+
+    if namereturncode == 2 or emailreturncode == 2:
+        if namereturncode == 2:  print "git-config reports that multiple values exist for " + location + " key " + name_key
+        if emailreturncode == 2: print "git-config reports that multiple values exist for " + location + " key " + email_key
+        print "This is incompatible with git-identitiy-switcher. Please fix it manually."
+        print "\nNew ID '{0}' could not be added.".format(new_id)
+        exit(1) # TODO: proper exit code
+
+    if (namereturncode == 0 or emailreturncode == 0) and not force:
+        if namereturncode == 0:  print location + " config key " + name_key + " already exists."
+        if emailreturncode == 0: print location + " config key " + email_key + " already exists."
+        print "If you want to overwrite this ID, please append the --force switch."
+        print "\nNew ID '{0}' could not be added.".format(new_id)
+        exit(1) # TODO: proper exit code
+
+    call(['git', 'config', '--' + location, name_key, name])
+    call(['git', 'config', '--' + location, email_key, email])
+
+def id_list(location):
+    if location == "global" or location == "all":
+        id_list_section('global')
+
+    if location == "local" or location == "all":
+        id_list_section('local')
+
+def id_list_section(location):
+    ids = get_id_list(location)
+    for key, value in ids.iteritems():
+        print '[{0}] "{1}": "{2} <{3}>"'.format(location, key, value[0], value[1])
 
 def id_rm(args):
     pass
@@ -185,6 +282,29 @@ def get_current_id(location):
         user_email = ""
 
     return (user_name, user_email)
+
+def get_id_list(location):
+    pipe = Popen(['git', 'config', '--' + location, '--get-regexp', '^id-switcher\.id\.'], stdout=PIPE).stdout
+    vallist = pipe.read()
+    pipe.close()
+
+    ids = {}
+
+    for val in vallist.splitlines():
+        parts = val.split(' ', 1)
+        keyparts = parts[0].split('.')
+        key = keyparts[2]
+        keytype = keyparts[3]
+        if not key in ids:
+            ids[key] = ['', '']
+        if keytype == "name":
+            ids[key][0] = parts[1]
+        elif keytype == "email":
+            ids[key][1] = parts[1]
+
+    return ids
+        
+        
     
 
 
