@@ -23,8 +23,6 @@
 from sys import argv
 from subprocess import *
 
-DEFAULT_LOCATION = "global"
-
 #### USAGE/HELP PRINTING FUNCTIONS ############################################
 
 def show_help():
@@ -68,23 +66,55 @@ def parse_args():
 
 
 def parse_args_set(idx):
-    if argc - idx < 1: # if no actual arguments are left
-        print "ERROR: Too few arguments (expected at least one)"
+    if idx >= argc: # if no actual arguments are left
+        print "Error: Too few arguments (expected at least one)"
         show_set_usage()
         exit(2)
-    set_name = argv[idx]
-    idx += 1
-    if idx < argc:
-        set_email = argv[idx]
-    else:
-        set_email = ""
-    set_location=DEFAULT_LOCATION
-    
+
+    set_location="global"
+
+    set_name = ""
+    set_name_set = False
+    set_email = ""
+    set_email_set = False
+
+    while idx < argc:
+        if argv[idx].lower() == "--local":
+            set_location = "local"
+        elif argv[idx].lower() == "--global":
+            set_location = "global"
+        elif not argv[idx].startswith("-"):
+            if not set_name_set:
+                set_name = argv[idx]
+                set_name_set = True
+            elif not set_email_set:
+                set_email = argv[idx]
+                set_email_set = True
+            else:
+                print "Error: superfluous positional argument '{0}'; ignoring.".format(argv[idx])
+        else:
+            print "Error: unknown option '{0}'; ignoring.".format(argv[idx])
+        idx += 1
+
+    if not set_name_set:
+        print "Error: no name or initials were given but are required! Aborting."
+        exit(1) # TODO: proper exit code
+
+    if not set_email_set: # we only got a name, assume it's an initial/alias
+        ids = get_id_list("global")
+        ids.update(get_id_list("local"))
+        if set_name in ids:
+            set_email = ids[set_name][1]
+            set_name = ids[set_name][0]
+        else:
+            print "Error: no identitiy with the initials '{0}' is known. Aborting.".format(set_name)
+            exit(1) # TODO: proper exit code
+
     id_set(set_name, set_email, set_location)
 
 
 def parse_args_unset(idx):
-    unset_location = DEFAULT_LOCATION
+    unset_location = "global"
     
     while idx < argc:
         if argv[idx].lower() == "--local":
@@ -156,7 +186,7 @@ def parse_args_add(idx):
 
 
 def parse_args_list(idx):
-    list_location = "global"
+    list_location = "all"
 
     while idx < argc:
         if argv[idx].lower() == "--local":
@@ -173,17 +203,13 @@ def parse_args_list(idx):
 #### MAIN PROGRAM FUNCTIONS (SUBCOMMANDS) #####################################
 
 def id_set(name, email, location):
-    if location == "local" or location == "global":
-        call(['git', 'config', '--' + location, 'user.name', '"' + name + '"'])
-        call(['git', 'config', '--' + location, 'user.email', '"' + email + '"'])
-    # TODO: add error message if unsupported location
+    call(['git', 'config', '--' + location, 'user.name', name])
+    call(['git', 'config', '--' + location, 'user.email', email])
 
 
 def id_unset(location):
-    if location == "local" or location == "global":
-        call(['git', 'config', '--' + location, '--unset', 'user.name'])
-        call(['git', 'config', '--' + location, '--unset', 'user.email'])
-    # TODO: add error message if unsupported location
+    call(['git', 'config', '--' + location, '--unset', 'user.name'])
+    call(['git', 'config', '--' + location, '--unset', 'user.email'])
 
 
 def id_show(location):
