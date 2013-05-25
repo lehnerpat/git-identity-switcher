@@ -37,39 +37,46 @@ def show_set_usage():
 #### ARGUMENT PARSING FUNCTIONS ###############################################
 
 def parse_args():
-    i = 0
+    i = 1
     # handle globally applicable arguments
-    for i in range(1,argc):
-        if not argv[i].startswith("-"):
-            i -= 1
-            break
+    while i < argc and argv[i].startswith("-"):
         if argv[i] == "-h" or argv[i].lower() == "--help": # help message was requested
             show_help() # show help message
             exit(0) # and quit
+        else:
+            print "Error: Unknown option '{0}'. Ignoring.".format(argv[i])
+        i += 1
 
-    i += 1
     if i < argc: # if there are any arguments left
-        if argv[i] == "set":
-            parse_args_set(i+1)
-        elif argv[i] == "unset":
-            parse_args_unset(i+1)
-        elif argv[i] == "show":
-            parse_args_show(i+1)
-        elif argv[i] == "add":
+        if argv[i] == "add":
             parse_args_add(i+1)
         elif argv[i] == "list":
             parse_args_list(i+1)
+        elif argv[i] == "set":
+            parse_args_set(i+1)
+        elif argv[i] == "show":
+            parse_args_show(i+1)
+        elif argv[i] == "rm":
+            parse_args_show(i+1)
+        elif argv[i] == "unset":
+            parse_args_unset(i+1)
+        elif argv[i] == "update":
+            parse_args_update(i+1)
+        else:
+            print "Error: Unknown subcommand '{0}'".format(argv[i])
+            show_help()
+            exit(2) # TODO: proper exit code
             
     else: # no subcommand was provided, show usage message and quit
         show_help()
-        exit(2)
+        exit(2) # TODO: proper exit code
 
 
 def parse_args_set(idx):
     if idx >= argc: # if no actual arguments are left
         print "Error: Too few arguments (expected at least one)"
         show_set_usage()
-        exit(2)
+        exit(2) # TODO: proper exit code
 
     set_location="global"
 
@@ -182,7 +189,7 @@ def parse_args_add(idx):
         print "Error: 'name' or 'email' input is empty or missing. Aborting."
         exit(1) # TODO: proper exit code
 
-    id_add(add_location, add_force, add_id, add_name, add_email)
+    id_add_or_update(add_location, add_id, add_name, add_email, add_force, False)
 
 
 def parse_args_list(idx):
@@ -198,6 +205,47 @@ def parse_args_list(idx):
         idx += 1
 
     id_list(list_location)
+
+
+def parse_args_rm(idx):
+    pass
+
+def parse_args_update(idx):
+    update_location = "global"
+    update_id = ''
+    update_id_set = False
+    update_name = ''
+    update_name_set = False
+    update_email = ''
+    update_email_set = False
+
+    while idx < argc:
+        if argv[idx].lower() == "--local":
+            update_location = "local"
+        elif argv[idx].lower() == "--global":
+            update_location = "global"
+        # these inputs are positional and must come last! (in the proper order!)
+        elif not argv[idx].startswith('-'):
+            if not update_id_set:
+                update_id = argv[idx]
+                update_id_set = True
+            elif not update_name_set:
+                update_name = argv[idx]
+                update_name_set = True
+            elif not update_email_set:
+                update_email = argv[idx]
+                update_email_set = True
+            else:
+                print "Error: superfluous positional argument '{0}'; ignoring.".format(argv[idx])
+        else:
+            print "Error: unknown option '{0}'; ignoring.".format(argv[idx])
+        idx += 1
+
+    if len(update_name) == 0 or len(update_email) == 0:
+        print "Error: 'name' or 'email' input is empty or missing. Aborting."
+        exit(1) # TODO: proper exit code
+
+    id_add_or_update(update_location, update_id, update_name, update_email, force=True, update=True)
 
 
 #### MAIN PROGRAM FUNCTIONS (SUBCOMMANDS) #####################################
@@ -237,7 +285,7 @@ def id_show_one(location, show_empty):
         print '[{0}] user.name  = "{1}"{2}'.format(location, user_name, user_name_suffix)
         print '[{0}] user.email = "{1}"{2}'.format(location, user_email, user_email_suffix)
 
-def id_add(location, force, new_id, name, email):
+def id_add_or_update(location, new_id, name, email, force, update):
     name_key = 'id-switcher.id.' + new_id + '.name'
     email_key = 'id-switcher.id.' + new_id + '.email'
 
@@ -259,10 +307,20 @@ def id_add(location, force, new_id, name, email):
         if namereturncode == 2:  print "git-config reports that multiple values exist for " + location + " key " + name_key
         if emailreturncode == 2: print "git-config reports that multiple values exist for " + location + " key " + email_key
         print "This is incompatible with git-identitiy-switcher. Please fix it manually."
-        print "\nNew ID '{0}' could not be added.".format(new_id)
+        if not update:
+            print "\nNew ID '{0}' could not be added.".format(new_id)
+        else:
+            print "\nID '{0}' could not be updated.".format(new_id)
         exit(1) # TODO: proper exit code
 
-    if (namereturncode == 0 or emailreturncode == 0) and not force:
+    if update:
+        if namereturncode == 1 or emailreturncode == 1:
+            if namereturncode == 1:  print location + " config key " + name_key + " does not exist."
+            if emailreturncode == 1: print location + " config key " + email_key + " does not exist."
+            print "If you want to create this ID, please use the 'add' subcommand."
+            print "\nID '{0}' could not be updated.".format(new_id)
+            exit(1) # TODO: proper exit code
+    elif (namereturncode == 0 or emailreturncode == 0) and not force:
         if namereturncode == 0:  print location + " config key " + name_key + " already exists."
         if emailreturncode == 0: print location + " config key " + email_key + " already exists."
         print "If you want to overwrite this ID, please append the --force switch."
@@ -285,9 +343,6 @@ def id_list_section(location):
         print '[{0}] "{1}": "{2} <{3}>"'.format(location, key, value[0], value[1])
 
 def id_rm(args):
-    pass
-
-def id_update(args):
     pass
 
 
