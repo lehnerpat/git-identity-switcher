@@ -449,4 +449,3 @@ def get_id_list(location):
 argc = len(argv)
 parse_args()
 
-print "done"
