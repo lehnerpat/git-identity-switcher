@@ -299,16 +299,10 @@ def id_show(location):
 def id_show_one(location, show_empty):
     (user_name, user_email) = get_current_id(location)
     if len(user_name) != 0 or len(user_email) != 0 or show_empty:
-        if len(user_name) == 0:
-            user_name_suffix = " (UNSET)"
+        if len(user_name) == 0 and len(user_email) == 0:
+            print 'Current {0} identity is not set'.format(location)
         else:
-            user_name_suffix = ""
-        if len(user_email) == 0:
-            user_email_suffix = " (UNSET)"
-        else:
-            user_email_suffix = ""
-        print '[{0}] user.name  = "{1}"{2}'.format(location, user_name, user_name_suffix)
-        print '[{0}] user.email = "{1}"{2}'.format(location, user_email, user_email_suffix)
+            print 'Current {0} identity: "{1} <{2}>"'.format(location, user_name, user_email)
 
 def id_add_or_update(location, new_id, name, email, force, update):
     name_key = 'id-switcher.id.' + new_id + '.name'
