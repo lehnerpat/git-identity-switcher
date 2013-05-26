@@ -57,7 +57,7 @@ def parse_args():
         elif argv[i] == "show":
             parse_args_show(i+1)
         elif argv[i] == "rm":
-            parse_args_show(i+1)
+            parse_args_rm(i+1)
         elif argv[i] == "unset":
             parse_args_unset(i+1)
         elif argv[i] == "update":
@@ -208,7 +208,32 @@ def parse_args_list(idx):
 
 
 def parse_args_rm(idx):
-    pass
+    remove_location = "local"
+    remove_id = ""
+    remove_id_set = False
+    
+    while idx < argc:
+        if argv[idx].lower() == "--local":
+            remove_location = "local"
+        elif argv[idx].lower() == "--global":
+            remove_location = "global"
+        #elif argv[idx].lower() == "--local-global":
+        #    remove_location = "local-global"
+        elif not argv[idx].startswith("-"):
+            if not remove_id_set:
+                remove_id = argv[idx]
+                remove_id_set = True
+            else:
+                print "Error: superfluous positional argument '{0}'; ignoring.".format(argv[idx])
+        else:
+            print "Error: unknown option '{0}'; ignoring.".format(argv[idx])
+        idx += 1
+
+    if len(remove_id) == 0:
+        print "Error: ID initials parameter empty or missing. Aborting."
+        exit(1) # TODO: proper exit code
+
+    id_rm(remove_location, remove_id)
 
 def parse_args_update(idx):
     update_location = "global"
@@ -342,8 +367,44 @@ def id_list_section(location):
     for key, value in ids.iteritems():
         print '[{0}] "{1}": "{2} <{3}>"'.format(location, key, value[0], value[1])
 
-def id_rm(args):
-    pass
+def id_rm(location, remove_id):
+    name_key = 'id-switcher.id.' + remove_id + '.name'
+    email_key = 'id-switcher.id.' + remove_id + '.email'
+
+    proc = Popen(['git', 'config', '--null', '--' + location, '--get', name_key], stdout=PIPE)
+    pipe = proc.stdout
+    proc.wait()
+    user_name = pipe.read()
+    pipe.close()
+    namereturncode = proc.returncode
+
+    proc = Popen(['git', 'config', '--null', '--' + location, '--get', email_key], stdout=PIPE)
+    pipe = proc.stdout
+    proc.wait()
+    user_email = pipe.read()
+    pipe.close()
+    emailreturncode = proc.returncode
+
+    if namereturncode == 2 or emailreturncode == 2:
+        if namereturncode == 2:  print "git-config reports that multiple values exist for " + location + " key " + name_key
+        if emailreturncode == 2: print "git-config reports that multiple values exist for " + location + " key " + email_key
+        print "This is incompatible with git-identitiy-switcher. Please fix it manually."
+        print "\nID '{0}' could not be removed.".format(remove_id)
+        exit(1) # TODO: proper exit code
+
+    if namereturncode == 1 and emailreturncode == 1:
+        print "Error: {1} ID '{0}' does not exist.".format(remove_id, location)
+        exit(1) # TODO: proper exit code
+
+    if namereturncode == 1: 
+        print "Warning: {0} config key {1} does not exist.".format(location, name_key)
+    else:
+        call(['git', 'config', '--unset', '--' + location, name_key])
+
+    if emailreturncode == 1:
+        print "Warning: {0} config key {1} does not exist.".format(location, email_key)
+    else:
+        call(['git', 'config', '--unset', '--' + location, email_key])
 
 
 #### UTILITY AND HELPER FUNCTIONS #############################################
