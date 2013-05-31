@@ -25,10 +25,13 @@ from subprocess import *
 
 #### USAGE/HELP PRINTING FUNCTIONS ############################################
 
-def show_help():
-    print """
-    git-indentity-switcher -- quickly switch between Git committer identities
+HELP_HEADER = "\n    git-indentity-switcher -- quickly switch between Git committer identities"
+HELP_FOOTER = """For more details on the meaning of the --global/--local flags, refer to the same
+flags in `man git-config`.
+"""
 
+def show_help():
+    print """{0}
 Usage: git-identity-switcher {{--help | -h | <subcommand>}}
 
 Where --help or -h will print this error message and quit.
@@ -45,10 +48,23 @@ Where --help or -h will print this error message and quit.
 To get help and usage information on these subcommands, use:
 
     git-identity-switcher <subcommand> {{--help | -h}}
-    """.format()
+""".format(HELP_HEADER)
 
-def show_set_usage():
-    pass
+def show_set_usage(showHeader = True, showFooter = True):
+    if showHeader:
+        print HELP_HEADER
+    print """
+Usage: git-identity-switcher set [--global | --local] {{<ID> | <name> <email>}}
+
+The option have the following meaning:
+    --global    set this ID globally (for all repos)
+    --local     set this ID locally (for this repo only)
+    <ID>        use the ID known by the given <ID> in the list
+    <name>      use an anonymous ID with the given user name
+    <email>     use an anonymous ID with the given user email
+"""
+    if showFooter:
+        print HELP_FOOTER
 
 
 #### ARGUMENT PARSING FUNCTIONS ###############################################
@@ -103,7 +119,10 @@ def parse_args_set(idx):
     set_email_set = False
 
     while idx < argc:
-        if argv[idx].lower() == "--local":
+        if argv[idx] == "-h" or argv[idx].lower() == "--help":
+            show_set_usage()
+            exit(0)
+        elif argv[idx].lower() == "--local":
             set_location = "local"
         elif argv[idx].lower() == "--global":
             set_location = "global"
