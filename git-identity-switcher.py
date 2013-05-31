@@ -48,8 +48,17 @@ To get help and usage information on these subcommands, use:
     git-identity-switcher <subcommand> -h
 """,
 
+    "add": """
+USAGE: git-identity-switcher add [--global | --local] [--force | --no-force]
+            <ID> <name> <email>
+""",
+
+    "list": """
+USAGE: git-identity-switcher list [--global | --local | --all]
+""",
+
     "set": """
-Usage: git-identity-switcher set [--global | --local] {{<ID> | <name> <email>}}
+USAGE: git-identity-switcher set [--global | --local] {{<ID> | <name> <email>}}
 
 The option have the following meaning:
     --global    set this ID globally (for all repos)
@@ -57,9 +66,25 @@ The option have the following meaning:
     <ID>        use the ID known by the given <ID> in the list
     <name>      use an anonymous ID with the given user name
     <email>     use an anonymous ID with the given user email
+""",
+
+    "show": """
+USAGE: git-identity-switcher show [--global | --local | --all]
+""",
+
+    "rm": """
+USAGE: git-identity-switcher rm [--global | --local] <ID>
+""",
+
+    "unset": """
+USAGE: git-identity-switcher unset [--global | --local]
+""",
+
+    "update": """
+USAGE: git-identity-switcher update [--global | --local] <ID> <name> <email>
 """
 }
-HELP_TOPIC_HAS_FOOTER = ["set"]
+HELP_TOPIC_HAS_FOOTER = ["add", "list", "set", "show", "rm", "unset", "update"]
 
 def show_help(topic = "main"):
     print HELP_TOPICS["_HEADER"]
@@ -106,7 +131,7 @@ def parse_args():
             print "Error: Unknown subcommand '{0}'".format(argv[i])
             show_help()
             exit(2) # TODO: proper exit code
-            
+
     else: # no subcommand was provided, show usage message and quit
         show_help()
         exit(2) # TODO: proper exit code
@@ -165,9 +190,12 @@ def parse_args_set(idx):
 
 def parse_args_unset(idx):
     unset_location = "global"
-    
+
     while idx < argc:
-        if argv[idx].lower() == "--local":
+        if argv[idx] == "-h" or argv[idx].lower() == "--help":
+            show_help("unset")
+            exit(0)
+        elif argv[idx].lower() == "--local":
             unset_location = "local"
         elif argv[idx].lower() == "--global":
             unset_location = "global"
@@ -181,7 +209,10 @@ def parse_args_show(idx):
     show_empty = False
 
     while idx < argc:
-        if argv[idx].lower() == "--local":
+        if argv[idx] == "-h" or argv[idx].lower() == "--help":
+            show_help("show")
+            exit(0)
+        elif argv[idx].lower() == "--local":
             show_location = "local"
         elif argv[idx].lower() == "--global":
             show_location = "global"
@@ -203,7 +234,10 @@ def parse_args_add(idx):
     add_email_set = False
 
     while idx < argc:
-        if argv[idx].lower() == "--local":
+        if argv[idx] == "-h" or argv[idx].lower() == "--help":
+            show_help("add")
+            exit(0)
+        elif argv[idx].lower() == "--local":
             add_location = "local"
         elif argv[idx].lower() == "--global":
             add_location = "global"
@@ -239,7 +273,10 @@ def parse_args_list(idx):
     list_location = "all"
 
     while idx < argc:
-        if argv[idx].lower() == "--local":
+        if argv[idx] == "-h" or argv[idx].lower() == "--help":
+            show_help("list")
+            exit(0)
+        elif argv[idx].lower() == "--local":
             list_location = "local"
         elif argv[idx].lower() == "--global":
             list_location = "global"
@@ -254,9 +291,12 @@ def parse_args_rm(idx):
     remove_location = "local"
     remove_id = ""
     remove_id_set = False
-    
+
     while idx < argc:
-        if argv[idx].lower() == "--local":
+        if argv[idx] == "-h" or argv[idx].lower() == "--help":
+            show_help("rm")
+            exit(0)
+        elif argv[idx].lower() == "--local":
             remove_location = "local"
         elif argv[idx].lower() == "--global":
             remove_location = "global"
@@ -288,7 +328,10 @@ def parse_args_update(idx):
     update_email_set = False
 
     while idx < argc:
-        if argv[idx].lower() == "--local":
+        if argv[idx] == "-h" or argv[idx].lower() == "--help":
+            show_help("update")
+            exit(0)
+        elif argv[idx].lower() == "--local":
             update_location = "local"
         elif argv[idx].lower() == "--global":
             update_location = "global"
@@ -433,7 +476,7 @@ def id_rm(location, remove_id):
         print "Error: {1} ID '{0}' does not exist.".format(remove_id, location)
         exit(1) # TODO: proper exit code
 
-    if namereturncode == 1: 
+    if namereturncode == 1:
         print "Warning: {0} config key {1} does not exist.".format(location, name_key)
     else:
         call(['git', 'config', '--unset', '--' + location, name_key])
@@ -482,9 +525,6 @@ def get_id_list(location):
             ids[key][1] = parts[1]
 
     return ids
-        
-        
-    
 
 
 #### MAIN PROGRAM PART ########################################################
