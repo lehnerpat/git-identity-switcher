@@ -25,14 +25,12 @@ from subprocess import *
 
 #### USAGE/HELP PRINTING FUNCTIONS ############################################
 
-HELP_HEADER = "\n    git-indentity-switcher -- quickly switch between Git committer identities"
-HELP_FOOTER = """For more details on the meaning of the --global/--local flags, refer to the same
-flags in `man git-config`.
-"""
+HELP_TOPICS = {
+    "_HEADER":"\n    git-indentity-switcher -- quickly switch between Git committer identities",
+    "_FOOTER":"For more details on the meaning of the --global/--local flags, refer to the same\nflags in `man git-config`.\n",
 
-def show_help():
-    print """{0}
-Usage: git-identity-switcher {{--help | -h | <subcommand>}}
+    "main":"""
+USAGE: git-identity-switcher {-h | <subcommand>}
 
 Where --help or -h will print this error message and quit.
 
@@ -47,13 +45,10 @@ Where --help or -h will print this error message and quit.
 
 To get help and usage information on these subcommands, use:
 
-    git-identity-switcher <subcommand> {{--help | -h}}
-""".format(HELP_HEADER)
+    git-identity-switcher <subcommand> -h
+""",
 
-def show_set_usage(showHeader = True, showFooter = True):
-    if showHeader:
-        print HELP_HEADER
-    print """
+    "set": """
 Usage: git-identity-switcher set [--global | --local] {{<ID> | <name> <email>}}
 
 The option have the following meaning:
@@ -63,8 +58,20 @@ The option have the following meaning:
     <name>      use an anonymous ID with the given user name
     <email>     use an anonymous ID with the given user email
 """
-    if showFooter:
-        print HELP_FOOTER
+}
+HELP_TOPIC_HAS_FOOTER = ["set"]
+
+def show_help(topic = "main"):
+    print HELP_TOPICS["_HEADER"]
+    if topic == "all":
+        for t,v in HELP_TOPICS:
+            if t not in ["_HEADER", "_FOOTER"]:
+                print v
+        print HELP_TOPICS["_FOOTER"]
+    else:
+        print HELP_TOPICS[topic]
+        if topic in HELP_TOPIC_HAS_FOOTER:
+            print HELP_TOPICS["_FOOTER"]
 
 
 #### ARGUMENT PARSING FUNCTIONS ###############################################
@@ -120,7 +127,7 @@ def parse_args_set(idx):
 
     while idx < argc:
         if argv[idx] == "-h" or argv[idx].lower() == "--help":
-            show_set_usage()
+            show_help("set")
             exit(0)
         elif argv[idx].lower() == "--local":
             set_location = "local"
