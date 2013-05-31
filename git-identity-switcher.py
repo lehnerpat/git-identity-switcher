@@ -28,7 +28,24 @@ from subprocess import *
 def show_help():
     print """
     git-indentity-switcher -- quickly switch between Git committer identities
-    """
+
+Usage: git-identity-switcher {{--help | -h | <subcommand>}}
+
+Where --help or -h will print this error message and quit.
+
+<subcommand> can be any of:
+    add     Add a new ID to the list
+    list    Show a list of all existing IDs
+    set     Set the active ID to an existing or anonymous one
+    show    Show which ID is currently active
+    rm      Delete an existing ID from the list
+    unset   Unset the current ID
+    update  Update the name and email of an existing ID
+
+To get help and usage information on these subcommands, use:
+
+    git-identity-switcher <subcommand> {{--help | -h}}
+    """.format()
 
 def show_set_usage():
     pass
