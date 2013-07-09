@@ -26,13 +26,15 @@ from subprocess import *
 #### USAGE/HELP PRINTING FUNCTIONS ############################################
 
 HELP_TOPICS = {
+    # header and footer for help output
     "_HEADER":"\n    git-indentity-switcher -- quickly switch between Git committer identities",
     "_FOOTER":"For more details on the meaning of the --global/--local flags, refer to the same\nflags in `man git-config`.\n",
 
+    # main help message:
     "main":"""
 USAGE: git-identity-switcher {-h | <subcommand>}
 
-Where --help or -h will print this error message and quit.
+Where -h will print this usage message and quit.
 
 <subcommand> can be any of:
     add     Add a new ID to the list
@@ -48,38 +50,78 @@ To get help and usage information on these subcommands, use:
     git-identity-switcher <subcommand> -h
 """,
 
+    # help message for "add" subcommand
     "add": """
 USAGE: git-identity-switcher add [--global | --local] [--force | --no-force]
             <ID> <name> <email>
+
+Add a new identity to the list.
+
+The options have the following meaning:
+    --global    add this ID to the global list (available in all repos)
+                [default]
+    --local     add this ID to the local list (only available in this repo)
+    --force     if ID exists, overwrite it (make `add` act like `update`)
+    --no-force  override a previously set --force (i.e. do not overwrite)
+    <ID>        the shorthand for this identity
+    <name>      the name for this identity (will be written to user.name when
+                ID is in use)
+    <email>     the email for this identity (will be written to user.email when
+                ID is in use)
 """,
 
+    # help message for the "list" subcommand
     "list": """
 USAGE: git-identity-switcher list [--global | --local | --all]
+
+Show a list of existing identities and their shorthands.
+
+The options have the following meaning:
+    --global    show the identities from the global list
+    --local     show the identities from the local list
+    --all       show both the local and global identity lists [default]
 """,
 
+    # help message for the "set" subcommand
     "set": """
 USAGE: git-identity-switcher set [--global | --local] {{<ID> | <name> <email>}}
 
-The option have the following meaning:
-    --global    set this ID globally (for all repos)
+Set the current committer identity to the given name and email or the identity
+with the given shorthand <ID>.
+
+The options have the following meaning:
+    --global    set this ID globally (for all repos) [default]
     --local     set this ID locally (for this repo only)
     <ID>        use the ID known by the given <ID> in the list
     <name>      use an anonymous ID with the given user name
     <email>     use an anonymous ID with the given user email
 """,
 
+    # help message for the "show" subcommand
     "show": """
 USAGE: git-identity-switcher show [--global | --local | --all]
+
+Show which identity currently is active (if any).
+By default, will show the local and global identity, but only if set.
+
+The options have the following meaning:
+    --global    show only the global identity
+    --local     show only the local identity
+    --all       show both the global and local identity, and print a notice
+                if they are not set
 """,
 
+    # help message for the "rm" subcommand
     "rm": """
 USAGE: git-identity-switcher rm [--global | --local] <ID>
 """,
 
+    # help message for the "unset" subcommand
     "unset": """
 USAGE: git-identity-switcher unset [--global | --local]
 """,
 
+    # help message for the "update" subcommand
     "update": """
 USAGE: git-identity-switcher update [--global | --local] <ID> <name> <email>
 """
