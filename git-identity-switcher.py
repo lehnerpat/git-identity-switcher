@@ -82,6 +82,18 @@ The options have the following meaning:
     --all       show both the local and global identity lists [default]
 """,
 
+    # help message for the "rm" subcommand
+    "rm": """
+USAGE: git-identity-switcher rm [--global | --local] <ID>
+
+Remove the identity with the given shorthand (<ID>) from the config.
+
+The options have the following meaning:
+    --global    remove identity from the global list
+    --local     remove identity from the local list (default)
+    <ID>        the shorthand of the identity to remove
+""",
+
     # help message for the "set" subcommand
     "set": """
 USAGE: git-identity-switcher set [--global | --local] {{<ID> | <name> <email>}}
@@ -109,18 +121,6 @@ The options have the following meaning:
     --local     show only the local identity
     --all       show both the global and local identity, and print a notice
                 if they are not set
-""",
-
-    # help message for the "rm" subcommand
-    "rm": """
-USAGE: git-identity-switcher rm [--global | --local] <ID>
-
-Remove the identity with the given shorthand (<ID>) from the config.
-
-The options have the following meaning:
-    --global    remove identity from the global list
-    --local     remove identity from the local list (default)
-    <ID>        the shorthand of the identity to remove
 """,
 
     # help message for the "unset" subcommand
@@ -202,92 +202,6 @@ def parse_args():
     else: # no subcommand was provided, show usage message and quit
         show_help()
         exit(2) # TODO: proper exit code
-
-
-def parse_args_set(idx):
-    if idx >= argc: # if no actual arguments are left
-        print "Error: Too few arguments (expected at least one)"
-        show_set_usage()
-        exit(2) # TODO: proper exit code
-
-    set_location="global"
-
-    set_name = ""
-    set_name_set = False
-    set_email = ""
-    set_email_set = False
-
-    while idx < argc:
-        if argv[idx] == "-h" or argv[idx].lower() == "--help":
-            show_help("set")
-            exit(0)
-        elif argv[idx].lower() == "--local":
-            set_location = "local"
-        elif argv[idx].lower() == "--global":
-            set_location = "global"
-        elif not argv[idx].startswith("-"):
-            if not set_name_set:
-                set_name = argv[idx]
-                set_name_set = True
-            elif not set_email_set:
-                set_email = argv[idx]
-                set_email_set = True
-            else:
-                print "Error: superfluous positional argument '{0}'; ignoring.".format(argv[idx])
-        else:
-            print "Error: unknown option '{0}'; ignoring.".format(argv[idx])
-        idx += 1
-
-    if not set_name_set:
-        print "Error: no name or initials were given but are required! Aborting."
-        exit(1) # TODO: proper exit code
-
-    if not set_email_set: # we only got a name, assume it's an initial/alias
-        ids = get_id_list("global")
-        ids.update(get_id_list("local"))
-        if set_name in ids:
-            set_email = ids[set_name][1]
-            set_name = ids[set_name][0]
-        else:
-            print "Error: no identitiy with the initials '{0}' is known. Aborting.".format(set_name)
-            exit(1) # TODO: proper exit code
-
-    id_set(set_name, set_email, set_location)
-
-
-def parse_args_unset(idx):
-    unset_location = "global"
-
-    while idx < argc:
-        if argv[idx] == "-h" or argv[idx].lower() == "--help":
-            show_help("unset")
-            exit(0)
-        elif argv[idx].lower() == "--local":
-            unset_location = "local"
-        elif argv[idx].lower() == "--global":
-            unset_location = "global"
-        idx += 1
-
-    id_unset(unset_location)
-
-
-def parse_args_show(idx):
-    show_location = "all"
-    show_empty = False
-
-    while idx < argc:
-        if argv[idx] == "-h" or argv[idx].lower() == "--help":
-            show_help("show")
-            exit(0)
-        elif argv[idx].lower() == "--local":
-            show_location = "local"
-        elif argv[idx].lower() == "--global":
-            show_location = "global"
-        elif argv[idx].lower() == "--all":
-            show_location = "ALL"
-        idx += 1
-
-    id_show(show_location)
 
 
 def parse_args_add(idx):
@@ -385,6 +299,93 @@ def parse_args_rm(idx):
 
     id_rm(remove_location, remove_id)
 
+
+def parse_args_set(idx):
+    if idx >= argc: # if no actual arguments are left
+        print "Error: Too few arguments (expected at least one)"
+        show_set_usage()
+        exit(2) # TODO: proper exit code
+
+    set_location="global"
+
+    set_name = ""
+    set_name_set = False
+    set_email = ""
+    set_email_set = False
+
+    while idx < argc:
+        if argv[idx] == "-h" or argv[idx].lower() == "--help":
+            show_help("set")
+            exit(0)
+        elif argv[idx].lower() == "--local":
+            set_location = "local"
+        elif argv[idx].lower() == "--global":
+            set_location = "global"
+        elif not argv[idx].startswith("-"):
+            if not set_name_set:
+                set_name = argv[idx]
+                set_name_set = True
+            elif not set_email_set:
+                set_email = argv[idx]
+                set_email_set = True
+            else:
+                print "Error: superfluous positional argument '{0}'; ignoring.".format(argv[idx])
+        else:
+            print "Error: unknown option '{0}'; ignoring.".format(argv[idx])
+        idx += 1
+
+    if not set_name_set:
+        print "Error: no name or initials were given but are required! Aborting."
+        exit(1) # TODO: proper exit code
+
+    if not set_email_set: # we only got a name, assume it's an initial/alias
+        ids = get_id_list("global")
+        ids.update(get_id_list("local"))
+        if set_name in ids:
+            set_email = ids[set_name][1]
+            set_name = ids[set_name][0]
+        else:
+            print "Error: no identitiy with the initials '{0}' is known. Aborting.".format(set_name)
+            exit(1) # TODO: proper exit code
+
+    id_set(set_name, set_email, set_location)
+
+
+def parse_args_show(idx):
+    show_location = "all"
+    show_empty = False
+
+    while idx < argc:
+        if argv[idx] == "-h" or argv[idx].lower() == "--help":
+            show_help("show")
+            exit(0)
+        elif argv[idx].lower() == "--local":
+            show_location = "local"
+        elif argv[idx].lower() == "--global":
+            show_location = "global"
+        elif argv[idx].lower() == "--all":
+            show_location = "ALL"
+        idx += 1
+
+    id_show(show_location)
+
+
+def parse_args_unset(idx):
+    unset_location = "global"
+
+    while idx < argc:
+        if argv[idx] == "-h" or argv[idx].lower() == "--help":
+            show_help("unset")
+            exit(0)
+        elif argv[idx].lower() == "--local":
+            unset_location = "local"
+        elif argv[idx].lower() == "--global":
+            unset_location = "global"
+        idx += 1
+
+    id_unset(unset_location)
+
+
 def parse_args_update(idx):
     update_location = "global"
     update_id = ''
@@ -427,35 +428,6 @@ def parse_args_update(idx):
 
 
 #### MAIN PROGRAM FUNCTIONS (SUBCOMMANDS) #####################################
-
-def id_set(name, email, location):
-    call(['git', 'config', '--' + location, 'user.name', name])
-    call(['git', 'config', '--' + location, 'user.email', email])
-
-
-def id_unset(location):
-    call(['git', 'config', '--' + location, '--unset', 'user.name'])
-    call(['git', 'config', '--' + location, '--unset', 'user.email'])
-
-
-def id_show(location):
-    if location == "ALL":
-        location = "all"
-        show_empty = True
-    else:
-        show_empty = False
-    if location == "global" or location == "all":
-        id_show_one("global", show_empty)
-    if location == "local" or location == "all":
-        id_show_one("local", show_empty)
-
-def id_show_one(location, show_empty):
-    (user_name, user_email) = get_current_id(location)
-    if len(user_name) != 0 or len(user_email) != 0 or show_empty:
-        if len(user_name) == 0 and len(user_email) == 0:
-            print 'Current {0} identity is not set'.format(location)
-        else:
-            print 'Current {0} identity: "{1} <{2}>"'.format(location, user_name, user_email)
 
 def id_add_or_update(location, new_id, name, email, force, update):
     name_key = 'id-switcher.id.' + new_id + '.name'
@@ -502,6 +474,7 @@ def id_add_or_update(location, new_id, name, email, force, update):
     call(['git', 'config', '--' + location, name_key, name])
     call(['git', 'config', '--' + location, email_key, email])
 
+
 def id_list(location):
     if location == "global" or location == "all":
         id_list_section('global')
@@ -513,6 +486,37 @@ def id_list_section(location):
     ids = get_id_list(location)
     for key, value in ids.iteritems():
         print '[{0}] "{1}": "{2} <{3}>"'.format(location, key, value[0], value[1])
+
+
+def id_set(name, email, location):
+    call(['git', 'config', '--' + location, 'user.name', name])
+    call(['git', 'config', '--' + location, 'user.email', email])
+
+
+def id_show(location):
+    if location == "ALL":
+        location = "all"
+        show_empty = True
+    else:
+        show_empty = False
+    if location == "global" or location == "all":
+        id_show_one("global", show_empty)
+    if location == "local" or location == "all":
+        id_show_one("local", show_empty)
+
+def id_show_one(location, show_empty):
+    (user_name, user_email) = get_current_id(location)
+    if len(user_name) != 0 or len(user_email) != 0 or show_empty:
+        if len(user_name) == 0 and len(user_email) == 0:
+            print 'Current {0} identity is not set'.format(location)
+        else:
+            print 'Current {0} identity: "{1} <{2}>"'.format(location, user_name, user_email)
+
+
+def id_unset(location):
+    call(['git', 'config', '--' + location, '--unset', 'user.name'])
+    call(['git', 'config', '--' + location, '--unset', 'user.email'])
+
 
 def id_rm(location, remove_id):
     name_key = 'id-switcher.id.' + remove_id + '.name'
