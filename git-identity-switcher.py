@@ -114,16 +114,41 @@ The options have the following meaning:
     # help message for the "rm" subcommand
     "rm": """
 USAGE: git-identity-switcher rm [--global | --local] <ID>
+
+Remove the identity with the given shorthand (<ID>) from the config.
+
+The options have the following meaning:
+    --global    remove identity from the global list
+    --local     remove identity from the local list (default)
+    <ID>        the shorthand of the identity to remove
 """,
 
     # help message for the "unset" subcommand
     "unset": """
 USAGE: git-identity-switcher unset [--global | --local]
+
+Unset the currently active identity, if any.
+
+The options have the following meaning:
+    --global    unset the global identity (default)
+    --local     unset the local identity
 """,
 
     # help message for the "update" subcommand
     "update": """
 USAGE: git-identity-switcher update [--global | --local] <ID> <name> <email>
+
+Update an existing identity using the given data.
+
+The options have the following meaning:
+    --global    update an ID in the global list (available in all repos)
+                [default]
+    --local     update an ID in the local list (only available in this repo)
+    <ID>        the shorthand for this identity
+    <name>      the name for this identity (will be written to user.name when
+                ID is in use)
+    <email>     the email for this identity (will be written to user.email when
+                ID is in use)
 """
 }
 HELP_TOPIC_HAS_FOOTER = ["add", "list", "set", "show", "rm", "unset", "update"]
